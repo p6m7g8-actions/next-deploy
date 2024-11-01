@@ -1,0 +1,92 @@
+name: "P6 Actions: NextJS Deploy"
+description: "P6 Actions: NextJS Deploy Static Site to S3"
+author: "p6m7g8"
+inputs:
+  aws_region:
+    description: "AWS region for deployment"
+    required: false
+    default: "us-east-1"
+  aws_role:
+    description: "AWS role to assume"
+    required: true
+  aws_session_name:
+    description: "Session name for the AWS role"
+    required: true
+  cdk_deploy_account:
+    description: "AWS CDK deploy account"
+    required: true
+  cdk_deploy_region:
+    description: "AWS CDK deploy region"
+    required: true
+  bucket_name:
+    description: "S3 bucket name"
+    required: true
+  cloudfront_distribution_id:
+    description: "CloudFront distribution ID"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4.2.2
+    - name: Install Node.js
+      shell: bash
+      run: |
+        curl -fsSL https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz -o node-v22.11.0-linux-x64.tar.xz
+        sudo tar -xJf node-v22.11.0-linux-x64.tar.xz -C /usr/local
+        echo "/usr/local/node-v22.11.0-linux-x64/bin" >> $GITHUB_PATH
+    - name: Corepack
+      shell: bash
+      run: |
+        sudo corepack enable
+        sudo corepack prepare pnpm@latest --activate
+    - name: Restore NPM node_modules
+      uses: actions/cache/restore@v4.1.2
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-pnpm-node_modules-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-node_modules-
+    - name: Check Node
+      shell: bash
+      run: |
+        set +e
+        which node
+        which npm
+        which pnpm
+        which corepack
+        node -v
+        npm -v
+        pnpm --version
+        corepack --version
+        echo $PATH
+    - name: Disable Next.js Telemetry
+      shell: bash
+      run: echo "NEXT_TELEMETRY_DISABLED=1" >> "$GITHUB_ENV"
+    - name: Install pnpm and dependencies
+      shell: bash
+      run: pnpm install
+    - name: Cache NPM dependencies
+      uses: actions/cache@v4.1.2
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-pnpm-node_modules-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-node_modules-
+    - name: Run build
+      shell: bash
+      run: pnpm run build
+    - name: Assume role using OIDC
+      uses: aws-actions/configure-aws-credentials@v4.0.2
+      with:
+        aws-region: ${{ inputs.aws_region }}
+        role-to-assume: ${{ inputs.aws_role }}
+        role-session-name: ${{ inputs.aws_session_name }}
+    - name: Deploy to S3
+      run: aws s3 sync out s3://${{ inputs.bucket_name }} --no-progress --follow-symlinks --delete --region ${{ inputs.cdk_deploy_region }}
+    - name: Invalidate CloudFront cache
+      uses: chetan/invalidate-cloudfront-action@v2.4
+      env:
+        AWS_REGION: ${{ inputs.cdk_deploy_region }}
+        DISTRIBUTION: ${{ inputs.cloudfront_distribution_id }}
+        PATHS: "/*"
