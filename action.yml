@@ -1,6 +1,6 @@
-name: "P6 Actions: NextJS Deploy"
-description: "P6 Actions: NextJS Deploy Static Site to S3"
-author: "p6m7g8"
+name: "P6 GHA: Deploys a NextJS Static Site to S3"
+description: "P6 GHA: Deploys a NextJS Static Site to S3"
+author: "Philip M. Gollucci"
 inputs:
   aws_region:
     description: "AWS region for deployment"
