@@ -75,7 +75,9 @@ runs:
           ${{ runner.os }}-pnpm-node_modules-
     - name: Run build
       shell: bash
-      run: pnpm run build
+      run: |
+        env | sort
+        pnpm run build
     - name: Assume role using OIDC
       uses: aws-actions/configure-aws-credentials@v4.0.2
       with:
