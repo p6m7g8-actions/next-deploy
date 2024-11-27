@@ -29,6 +29,8 @@ runs:
   steps:
     - name: Checkout code
       uses: actions/checkout@v4.2.2
+    - name: Node
+      uses: p6m7g8-actions/node-setup@main
     - name: Disable Next.js Telemetry
       shell: bash
       run: echo "NEXT_TELEMETRY_DISABLED=1" >> "$GITHUB_ENV"
