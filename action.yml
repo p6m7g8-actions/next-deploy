@@ -40,7 +40,7 @@ runs:
         env | sort
         pnpm run build
     - name: Assume role using OIDC
-      uses: aws-actions/configure-aws-credentials@v4.0.2
+      uses: aws-actions/configure-aws-credentials@v4.1.0
       with:
         aws-region: ${{ inputs.aws_region }}
         role-to-assume: ${{ inputs.aws_role }}
