@@ -20,6 +20,7 @@ inputs:
     # it from their deploy workflows.
     description: "Deprecated, unused. AWS CDK deploy account. Retained for caller compatibility."
     required: false
+    deprecationMessage: "cdk_deploy_account is unused by next-deploy and will be removed. Stop passing it."
   cdk_deploy_region:
     description: "AWS CDK deploy region"
     required: true
