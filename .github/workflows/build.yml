@@ -3,6 +3,13 @@ name: Build
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]
+  # The merge queue needs `build` to report on the queue ref. merge_group
+  # alone was not dispatching, so mirror the push-on-queue-ref trigger the
+  # review workflows already use. `Lint PR title` is also emitted by
+  # pull-request-lint.yml, which already carries this trigger.
+  push:
+    branches:
+      - gh-readonly-queue/**
   merge_group:
     types: [checks_requested]
   workflow_dispatch: {}
@@ -12,7 +19,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: build-${{ github.event.pull_request.number || github.ref }}
+  group: build-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,8 +39,8 @@ jobs:
       pull-requests: read
     steps:
       - name: Skip PR title lint in merge queue context
-        if: github.event_name == 'merge_group'
-        run: echo "No PR title in merge_group event; marking check successful."
+        if: github.event_name == 'merge_group' || github.event_name == 'push'
+        run: echo "No PR title in merge_group/push event; marking check successful."
       - name: Lint PR title
         if: github.event_name == 'pull_request'
         uses: p6m7g8-actions/p6-gh-pr-title-linter@main
