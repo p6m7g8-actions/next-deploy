@@ -13,8 +13,13 @@ inputs:
     description: "Session name for the AWS role"
     required: true
   cdk_deploy_account:
-    description: "AWS CDK deploy account"
-    required: true
+    # Deprecated and unused: this action never reads cdk_deploy_account. It is
+    # kept declared, and downgraded to optional, only so existing callers that
+    # still pass it do not start emitting "Unexpected input(s)" warnings.
+    # Remove it once pgollucci/gollucci.com and p6m7g8/p6m7g8.com have dropped
+    # it from their deploy workflows.
+    description: "Deprecated, unused. AWS CDK deploy account. Retained for caller compatibility."
+    required: false
   cdk_deploy_region:
     description: "AWS CDK deploy region"
     required: true
@@ -36,9 +41,7 @@ runs:
       run: echo "NEXT_TELEMETRY_DISABLED=1" >> "$GITHUB_ENV"
     - name: Run build
       shell: bash
-      run: |
-        env | sort
-        pnpm run build
+      run: pnpm run build
     - name: Assume role using OIDC
       uses: p6m7g8-actions/aws-credentials@main
       with:
@@ -47,7 +50,12 @@ runs:
         role-session-name: ${{ inputs.aws_session_name }}
     - name: Deploy to S3
       shell: bash
-      run: aws s3 sync out s3://${{ inputs.bucket_name }} --no-progress --follow-symlinks --delete --region ${{ inputs.cdk_deploy_region }}
+      env:
+        BUCKET_NAME: ${{ inputs.bucket_name }}
+        DEPLOY_REGION: ${{ inputs.cdk_deploy_region }}
+      run: |
+        aws s3 sync out "s3://${BUCKET_NAME}" \
+          --no-progress --follow-symlinks --delete --region "${DEPLOY_REGION}"
     - name: Invalidate CloudFront cache
       uses: chetan/invalidate-cloudfront-action@v2.4.2
       env:
